@@ -17,6 +17,9 @@ import threading
 def calculate_acceleration_magnitude(acc_x, acc_y, acc_z):
     return math.sqrt(acc_x**2 + acc_y**2 + acc_z**2)
 
+def calculate_force(acc_all):
+    return (acc_all * G * M)
+
 def save_val(words, data_index, id):
     roll = float(words[data_index]) * grad2rad
     pitch = float(words[data_index+1]) * grad2rad
@@ -28,6 +31,7 @@ def save_val(words, data_index, id):
     pitch_r = "%.2f" % (pitch * rad2grad)
     yaw_r = "%.2f" % (yaw * rad2grad)
     acc_all = calculate_acceleration_magnitude(acc_x, acc_y, acc_z)
+    force = calculate_force(acc_all)
 
     gyr_x_key = 'gyr_x'
     gyr_y_key = 'gyr_y'
@@ -36,6 +40,7 @@ def save_val(words, data_index, id):
     acc_y_key = 'acc_y'
     acc_z_key = 'acc_z'
     acc_all_key = 'acc_all'
+    force_key = 'force'
 
     with lock:
         data_key = f'100-{id}'
@@ -46,7 +51,7 @@ def save_val(words, data_index, id):
         data[data_key][acc_y_key] = np.append(data[data_key][acc_y_key], float(acc_y))
         data[data_key][acc_z_key] = np.append(data[data_key][acc_z_key], float(acc_z))
         data[data_key][acc_all_key] = np.append(data[data_key][acc_all_key], float(acc_all))
-
+        data[data_key][force_key] = np.append(data[data_key][force_key], float(force))
         # Append to csv file
         now = datetime.now()
         date_time = now.strftime("%Y-%m-%d_%H-%M-%S")
@@ -109,7 +114,7 @@ if __name__ == '__main__':
     data = {}
     for i in range(1):
         data[f'100-{i}'] = np.zeros(1, dtype=[('gyr_x_'+str(i), np.float), ('gyr_y_'+str(i), np.float), ('gyr_z_'+str(i), np.float), 
-            ('acc_x_'+str(i), np.float), ('acc_y_'+str(i), np.float), ('acc_z_'+str(i), np.float), ('acc_all'+ str(i), np.float)])
+            ('acc_x_'+str(i), np.float), ('acc_y_'+str(i), np.float), ('acc_z_'+str(i), np.float), ('acc_all'+ str(i), np.float), ('force'+ str(i), np.float) ])
 
     ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.5)
 
@@ -117,7 +122,7 @@ if __name__ == '__main__':
 
     data_thread = threading.Thread(target=read_sensors)
     data_thread.start()
-    fieldnames = ["Packet number", "Gyroscope X (deg/s)","Gyroscope Y (deg/s)", "Gyroscope Z (deg/s)", "Accelerometer X (g)", "Accelerometer Y (g)", "Accelerometer Z (g)"]
+    fieldnames = ["Packet number", "Gyroscope X (deg/s)","Gyroscope Y (deg/s)", "Gyroscope Z (deg/s)", "Accelerometer X (g)", "Accelerometer Y (g)", "Accelerometer Z (g)", "AccAll", "Force"]
     # with open('/home/dohlee/ras_data_tmp/data/data.csv','w') as csv_file:
     #     csv_writer = csv.DictWriter(csv_file, fieldnames = fieldnames)
     #     csv_writer.writeheader()
