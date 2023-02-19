@@ -20,15 +20,13 @@ def calculate_force(acc_all):
     return (acc_all * G * M)
 
 def save_val(words, data_index, num):
-    roll = float(words[data_index]) * grad2rad
-    pitch = float(words[data_index+1]) * grad2rad
-    yaw = float(words[data_index+2]) * grad2rad
+    roll = float(words[data_index])
+    pitch = float(words[data_index+1])
+    yaw = float(words[data_index+2])
     acc_x = float(words[data_index+3])
     acc_y = float(words[data_index+4])
     acc_z = float(words[data_index+5])
-    roll_r = "%.2f" % (roll * rad2grad)
-    pitch_r = "%.2f" % (pitch * rad2grad)
-    yaw_r = "%.2f" % (yaw * rad2grad)
+
     acc_all = calculate_acceleration_magnitude(acc_x, acc_y, acc_z)
     force = calculate_force(acc_all)
 
@@ -36,9 +34,9 @@ def save_val(words, data_index, num):
         csv_writer = csv.DictWriter(csv_file,fieldnames=fieldnames)
         info = {
             "Packet number": num,
-            "Gyroscope X (deg/s)":roll_r,
-            "Gyroscope Y (deg/s)":pitch_r,
-            "Gyroscope Z (deg/s)": yaw_r,
+            "Gyroscope X (deg/s)":roll,
+            "Gyroscope Y (deg/s)":pitch,
+            "Gyroscope Z (deg/s)": yaw,
             "Accelerometer X (g)": acc_x,
             "Accelerometer Y (g)": acc_y,
             "Accelerometer Z (g)": acc_z,
