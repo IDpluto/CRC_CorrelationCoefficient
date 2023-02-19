@@ -10,9 +10,8 @@ import time
 import csv
 from datetime import datetime
 import atexit
+from influxdb import InfluxDBClient
 from typing import NamedTuple
-
-import threading
 
 def calculate_acceleration_magnitude(acc_x, acc_y, acc_z):
     return math.sqrt(acc_x**2 + acc_y**2 + acc_z**2)
@@ -20,7 +19,7 @@ def calculate_acceleration_magnitude(acc_x, acc_y, acc_z):
 def calculate_force(acc_all):
     return (acc_all * G * M)
 
-def save_val(words, data_index, id):
+def save_val(words, data_index, num):
     roll = float(words[data_index]) * grad2rad
     pitch = float(words[data_index+1]) * grad2rad
     yaw = float(words[data_index+2]) * grad2rad
@@ -33,98 +32,75 @@ def save_val(words, data_index, id):
     acc_all = calculate_acceleration_magnitude(acc_x, acc_y, acc_z)
     force = calculate_force(acc_all)
 
-    gyr_x_key = 'gyr_x'
-    gyr_y_key = 'gyr_y'
-    gyr_z_key = 'gyr_z'
-    acc_x_key = 'acc_x'
-    acc_y_key = 'acc_y'
-    acc_z_key = 'acc_z'
-    acc_all_key = 'acc_all'
-    force_key = 'force'
+    with open('/home/dohlee/ras_data_tmp/data/data.csv','a') as csv_file:
+        csv_writer = csv.DictWriter(csv_file,fieldnames=fieldnames)
+        info = {
+            "Packet number": num,
+            "Gyroscope X (deg/s)":roll_r,
+            "Gyroscope Y (deg/s)":pitch_r,
+            "Gyroscope Z (deg/s)": yaw_r,
+            "Accelerometer X (g)": acc_x,
+            "Accelerometer Y (g)": acc_y,
+            "Accelerometer Z (g)": acc_z,
+            "AccAll": acc_all,
+            "Force": force
+            #"Force": af
+        }
+        csv_writer.writerow(info)
 
-    with lock:
-        data_key = f'100-{id}'
-        data[data_key][gyr_x_key] = np.append(data[data_key][gyr_x_key], float(roll_r))
-        data[data_key][gyr_y_key] = np.append(data[data_key][gyr_y_key], float(pitch_r))
-        data[data_key][gyr_z_key] = np.append(data[data_key][gyr_z_key], float(yaw_r))
-        data[data_key][acc_x_key] = np.append(data[data_key][acc_x_key], float(acc_x))
-        data[data_key][acc_y_key] = np.append(data[data_key][acc_y_key], float(acc_y))
-        data[data_key][acc_z_key] = np.append(data[data_key][acc_z_key], float(acc_z))
-        data[data_key][acc_all_key] = np.append(data[data_key][acc_all_key], float(acc_all))
-        data[data_key][force_key] = np.append(data[data_key][force_key], float(force))
-        # Append to csv file
-        now = datetime.now()
-        date_time = now.strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"data/{date_time}_{data_key}.csv"
-        with open(filename, 'a', newline='') as csv_file:
-            csv_writer = csv.writer(csv_file)
-            csv_writer.writerow([len(data[data_key][gyr_x_key]), roll_r, pitch_r, yaw_r, acc_x, acc_y, acc_z, acc_all])
 
-def read_sensors():
-    global data
-    global lock
-    while True:
-        line = ser.readline()
-        line = line.decode("ISO-8859-1")# .encode("utf-8")
-        words = line.split(",")    # Fields split
-        if(-1 < words[0].find('*')) :
-            data_from=1     # sensor data
-            data_index=0
-            text = "ID:"+'*'
-            words[0]=words[0].replace('*','')
+def read_serial():
+    global num
+    line = ser.readline()
+    line = line.decode("ISO-8859-1")
+    words = line.split(",")
+
+    if (-1 < words[0].find('*')) :
+        data_from = 1
+        data_index = 0
+        text = "ID:" + '*'
+        words[0]=words[0].replace('*','')
+    else :
+        if(-1 < words[0].find('-')) :
+            data_from=2  # rf_receiver data
+            data_index=1
+            text = "ID:"+words[0]
         else :
-            if(-1 < words[0].find('-')) :
-                data_from=2  # rf_receiver data
-                data_index=1
-                text = "ID:"+words[0]
+            data_from=0  # unknown format
+        if(data_from!=0):
+            commoma = words[data_index].find('.') 
+            if(len(words[data_index][commoma:-1])==4):
+                data_format = 2  # quaternion
             else :
-                data_from=0  # unknown format
-            if(data_from!=0):
-                commoma = words[data_index].find('.') 
-                if(len(words[data_index][commoma:-1])==4): 
-                    data_format = 2  # quaternion
-                else :
-                    data_format = 1 # euler
-                if(data_format==1): #euler
-                    if (text == "ID:100-0"):
-                        with lock:
-                            save_val(words, data_index, 0)
-
+                data_format = 1 # euler
+            if(data_format==1): #euler
+                if (text == "ID:100-0"):
+                    save_val(words, data_index,num)
+                    num += 1
 
 if __name__ == '__main__':
     M = 0.415
     G = 9.81
-
-    ser = serial.Serial('/dev/ttyUSB0', 921600)
-
-    lock = threading.Lock()
+    num = 0
     cos = math.cos
     grad2rad = math.pi / 180.0
     rad2grad = 180.0 / math.pi
 
-    class SensorData(NamedTuple):
-        gyr_x: np.ndarray
-        gyr_y: np.ndarray
-        gyr_z: np.ndarray
-        acc_x: np.ndarray
-        acc_y: np.ndarray
-        acc_z: np.ndarray
-        acc_all: np.ndarray
+    ser = serial.Serial('/dev/ttyUSB0', 921600)
 
-    data = {}
-    for i in range(1):
-        data[f'100-{i}'] = np.zeros(1, dtype=[('gyr_x_'+str(i), np.float), ('gyr_y_'+str(i), np.float), ('gyr_z_'+str(i), np.float), 
-            ('acc_x_'+str(i), np.float), ('acc_y_'+str(i), np.float), ('acc_z_'+str(i), np.float), ('acc_all'+ str(i), np.float), ('force'+ str(i), np.float) ])
 
-    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.5)
+    s_gyr_x = deque()
+    s_gyr_y = deque()
+    s_gyr_z = deque()
+    s_acx = deque()
+    s_acy = deque()
+    s_acz = deque()
 
-    lock = threading.Lock()
 
-    data_thread = threading.Thread(target=read_sensors)
-    data_thread.start()
     fieldnames = ["Packet number", "Gyroscope X (deg/s)","Gyroscope Y (deg/s)", "Gyroscope Z (deg/s)", "Accelerometer X (g)", "Accelerometer Y (g)", "Accelerometer Z (g)", "AccAll", "Force"]
-    # with open('/home/dohlee/ras_data_tmp/data/data.csv','w') as csv_file:
-    #     csv_writer = csv.DictWriter(csv_file, fieldnames = fieldnames)
-    #     csv_writer.writeheader()
 
-        
+    with open('data/data.csv','w') as csv_file:
+        csv_writer = csv.DictWriter(csv_file, fieldnames = fieldnames)
+        csv_writer.writeheader()
+    while(1):
+        read_serial()
