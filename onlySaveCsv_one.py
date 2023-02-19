@@ -32,7 +32,7 @@ def save_val(words, data_index, num):
     acc_all = calculate_acceleration_magnitude(acc_x, acc_y, acc_z)
     force = calculate_force(acc_all)
 
-    with open('/home/dohlee/ras_data_tmp/data/data.csv','a') as csv_file:
+    with open('data/data.csv','a') as csv_file:
         csv_writer = csv.DictWriter(csv_file,fieldnames=fieldnames)
         info = {
             "Packet number": num,
@@ -44,7 +44,6 @@ def save_val(words, data_index, num):
             "Accelerometer Z (g)": acc_z,
             "AccAll": acc_all,
             "Force": force
-            #"Force": af
         }
         csv_writer.writerow(info)
 
