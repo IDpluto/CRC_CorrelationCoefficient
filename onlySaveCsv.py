@@ -53,7 +53,7 @@ def save_val(words, data_index, id):
                 # Append to csv file
         now = datetime.now()
         date_time = now.strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"data/{date_time}_{data_key}.csv"
+        filename = f"/home/dohlee/CRC_CorrelationCoefficient/data/{date_time}_{data_key}.csv"
         with open(filename, 'a', newline='') as csv_file:
             csv_writer = csv.writer(csv_file)
             csv_writer.writerow([len(data[data_key][gyr_x_key]), roll_r, pitch_r, yaw_r, acc_x, acc_y, acc_z, acc_all, force])
