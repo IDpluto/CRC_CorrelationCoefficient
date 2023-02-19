@@ -1,8 +1,6 @@
 import serial
 import math
 import pandas as pd
-from matplotlib import pyplot as plt
-from matplotlib import animation
 import numpy as np
 from scipy import stats
 from collections import deque
@@ -122,18 +120,14 @@ if __name__ == '__main__':
 
     data = {}
     for i in range(5):
-        data[f'100-{i}'] = np.zeros(1, dtype=[('gyr_x_'+str(i), np.float), ('gyr_y_'+str(i), np.float), ('gyr_z_'+str(i), np.float), 
-            ('acc_x_'+str(i), np.float), ('acc_y_'+str(i), np.float), ('acc_z_'+str(i), np.float), ('acc_all'+ str(i), np.float), ('force'+ str(i), np.float) ])
-
-    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=0.5)
+        data[f'100-{i}'] = np.zeros(1, dtype=[('gyr_x_'+str(i), np.float64), ('gyr_y_'+str(i), np.float64), ('gyr_z_'+str(i), np.float64), 
+            ('acc_x_'+str(i), np.float64), ('acc_y_'+str(i), np.float64), ('acc_z_'+str(i), np.float64), ('acc_all'+ str(i), np.float64), ('force'+ str(i), np.float64) ])
+    
+    ser = serial.Serial('/dev/ttyUSB0', 921600, timeout = 0.5)
 
     lock = threading.Lock()
 
     data_thread = threading.Thread(target=read_sensors)
     data_thread.start()
-    fieldnames = ["Packet number", "Gyroscope X (deg/s)","Gyroscope Y (deg/s)", "Gyroscope Z (deg/s)", "Accelerometer X (g)", "Accelerometer Y (g)", "Accelerometer Z (g)"]
-    # with open('/home/dohlee/ras_data_tmp/data/data.csv','w') as csv_file:
-    #     csv_writer = csv.DictWriter(csv_file, fieldnames = fieldnames)
-    #     csv_writer.writeheader()
-
+    
         
