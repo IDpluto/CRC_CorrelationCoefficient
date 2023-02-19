@@ -11,6 +11,12 @@ import atexit
 from typing import NamedTuple
 
 import threading
+import keyboard
+
+def on_esc_press():
+    print("Exiting program...")
+    # do any cleanup or exit operations here
+    sys.exit()
 
 def calculate_acceleration_magnitude(acc_x, acc_y, acc_z):
     return math.sqrt(acc_x**2 + acc_y**2 + acc_z**2)
@@ -50,13 +56,13 @@ def save_val(words, data_index, id):
         data[data_key][acc_z_key] = np.append(data[data_key][acc_z_key], float(acc_z))
         data[data_key][acc_all_key] = np.append(data[data_key][acc_all_key], float(acc_all))
         data[data_key][force_key] = np.append(data[data_key][force_key], float(force))
-                # Append to csv file
-        now = datetime.now()
-        date_time = now.strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"/home/dohlee/CRC_CorrelationCoefficient/data/{date_time}_{data_key}.csv"
-        with open(filename, 'a', newline='') as csv_file:
-            csv_writer = csv.writer(csv_file)
-            csv_writer.writerow([len(data[data_key][gyr_x_key]), roll_r, pitch_r, yaw_r, acc_x, acc_y, acc_z, acc_all, force])
+    # Append to csv file
+    now = datetime.now()
+    date_time = now.strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"/home/dohlee/CRC_CorrelationCoefficient/data/{date_time}_{data_key}.csv"
+    with open(filename, 'a', newline='') as csv_file:
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerow([len(data[data_key][gyr_x_key]), roll_r, pitch_r, yaw_r, acc_x, acc_y, acc_z, acc_all, force])
 
 def read_sensors():
     global data
@@ -103,7 +109,6 @@ if __name__ == '__main__':
     G = 9.81
 
     ser = serial.Serial('/dev/ttyUSB0', 921600)
-
     lock = threading.Lock()
     cos = math.cos
     grad2rad = math.pi / 180.0
@@ -124,10 +129,10 @@ if __name__ == '__main__':
             ('acc_x_'+str(i), np.float64), ('acc_y_'+str(i), np.float64), ('acc_z_'+str(i), np.float64), ('acc_all'+ str(i), np.float64), ('force'+ str(i), np.float64) ])
     
     ser = serial.Serial('/dev/ttyUSB0', 921600, timeout = 0.5)
-
+    keyboard.on_press_key('esc', on_esc_press)
     lock = threading.Lock()
 
     data_thread = threading.Thread(target=read_sensors)
     data_thread.start()
-    
-        
+    data_thread.join()
+
